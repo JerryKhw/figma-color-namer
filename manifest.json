@@ -1,0 +1,19 @@
+{
+  "name": "Figma Color Namer",
+  "id": "1255369062417228180",
+  "api": "1.0.0",
+  "editorType": [
+    "figma"
+  ],
+  "capabilities": [],
+  "permissions": [],
+  "enablePrivatePluginApi": true,
+  "main": "dist/code.js",
+  "ui": "dist/index.html",
+  "networkAccess": {
+    "allowedDomains": [
+      "fcn-api.fly.dev"
+    ],
+    "reasoning": "Using API to get image naming"
+  }
+}
