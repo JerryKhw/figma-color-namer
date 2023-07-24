@@ -137,21 +137,34 @@ fetch("https://fcn-api.fly.dev/v1", {
   body: JSON.stringify({
     colors,
   }),
-}).then(async (response) => {
-  const json = await response.json();
+})
+  .then(async (response) => {
+    const json = await response.json();
 
-  if (json.message == "success") {
-    figma.ui.postMessage({
-      type: PluginMessageType.PREVIEW,
-      data: json.data,
-    });
-  } else {
+    if (json.message == "success") {
+      figma.ui.postMessage({
+        type: PluginMessageType.PREVIEW,
+        data: json.data,
+      });
+    } else {
+      figma.notify("Figma Color Namer : Failed to get name", {
+        timeout: 1000,
+        error: true,
+        onDequeue: () => {
+          figma.closePlugin();
+        },
+      });
+    }
+  })
+  .catch(async () => {
     figma.notify("Figma Color Namer : Failed to get name", {
+      timeout: 1000,
       error: true,
+      onDequeue: () => {
+        figma.closePlugin();
+      },
     });
-    figma.closePlugin();
-  }
-});
+  });
 
 figma.ui.onmessage = async (msg: UiMessage) => {
   const { type, data } = msg;
@@ -217,9 +230,12 @@ figma.ui.onmessage = async (msg: UiMessage) => {
       } catch (e) {
         console.log(e);
         figma.notify("Figma Color Namer : Failed generate", {
+          timeout: 1000,
           error: true,
+          onDequeue: () => {
+            figma.closePlugin();
+          },
         });
-        figma.closePlugin();
       }
       break;
     }
