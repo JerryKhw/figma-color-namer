@@ -129,42 +129,43 @@ colors = colors.reduce((list: Color[], color) => {
   return list;
 }, []);
 
-fetch("https://fcn-api.fly.dev/v1", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    colors,
-  }),
-})
-  .then(async (response) => {
-    const json = await response.json();
-
-    if (json.message == "success") {
-      figma.ui.postMessage({
-        type: PluginMessageType.PREVIEW,
-        data: json.data,
-      });
-    } else {
-      figma.notify("Figma Color Namer : Failed to get name", {
-        timeout: 1000,
-        error: true,
-        onDequeue: () => {
-          figma.closePlugin();
-        },
-      });
-    }
-  })
-  .catch(async () => {
-    figma.notify("Figma Color Namer : Failed to get name", {
-      timeout: 1000,
-      error: true,
-      onDequeue: () => {
-        figma.closePlugin();
-      },
-    });
+if (colors.length == 0) {
+  figma.notify("Figma Color Namer : Not Found Colors", {
+    error: true,
+    onDequeue: () => figma.closePlugin(),
   });
+} else {
+  fetch("https://fcn-api.fly.dev/v1", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      colors,
+    }),
+  })
+    .then(async (response) => {
+      const json = await response.json();
+
+      if (json.message == "success") {
+        figma.ui.postMessage({
+          type: PluginMessageType.PREVIEW,
+          data: json.data,
+        });
+      } else {
+        figma.notify("Figma Color Namer : Failed to get name", {
+          error: true,
+          onDequeue: () => figma.closePlugin(),
+        });
+      }
+    })
+    .catch(() => {
+      figma.notify("Figma Color Namer : Failed to get name", {
+        error: true,
+        onDequeue: () => figma.closePlugin(),
+      });
+    });
+}
 
 figma.ui.onmessage = async (msg: UiMessage) => {
   const { type, data } = msg;
