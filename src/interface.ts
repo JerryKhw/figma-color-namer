@@ -17,8 +17,10 @@ export interface Preview {
 
 export interface PreviewUI {
   hex: string;
+  localName: string | null;
   name: string;
   opacity: number;
+  useGenerate: boolean;
 }
 
 export interface LocalStyle {
@@ -36,7 +38,19 @@ export interface GenerateOption {
   preview: PreviewUI[];
 }
 
+export interface LocalColor {
+  hex: string;
+  name: string;
+  opacity: number;
+}
+
 export interface Color {
   hex: string;
   opacity: number;
+}
+
+export interface UseGenerate {
+  hex: string;
+  opacity: number;
+  useGenerate: boolean;
 }

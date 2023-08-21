@@ -9,13 +9,24 @@ const App = () => {
   const [pageType, setPageType] = useState<PageType>(PageType.LOADING);
   const [preview, setPreview] = useState<PreviewUI[]>([]);
 
-  const onGenerate = useCallback(() => {
+  const onChange = useCallback(
+    async (index: number, value: PreviewUI) => {
+      const newPreviews = [...preview];
+
+      newPreviews[index] = value;
+
+      setPreview(newPreviews);
+    },
+    [preview]
+  );
+
+  const onApply = useCallback(() => {
     setLoading(true);
 
     parent.postMessage(
       {
         pluginMessage: {
-          type: UiMessageType.GENERATE,
+          type: UiMessageType.APPLY,
           data: {
             preview: preview,
           },
@@ -50,14 +61,14 @@ const App = () => {
       ) : (
         <>
           <section>
-            {preview.map((pre) => (
-              <PreviewItem preview={pre} />
+            {preview.map((pre, index) => (
+              <PreviewItem preview={pre} index={index} onChange={onChange} />
             ))}
           </section>
           <footer>
             <div className="spacer" />
 
-            <button onClick={onGenerate}>Generate</button>
+            <button onClick={onApply}>Apply</button>
           </footer>
 
           {loading && (
