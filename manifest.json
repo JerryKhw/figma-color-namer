@@ -12,7 +12,7 @@
   "ui": "dist/index.html",
   "networkAccess": {
     "allowedDomains": [
-      "fcn-api.fly.dev"
+      "https://fcn-api.fly.dev"
     ],
     "reasoning": "Using API to get image naming"
   }

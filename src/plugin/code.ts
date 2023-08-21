@@ -1,6 +1,15 @@
 import { PluginMessageType, UiMessageType } from "../enum";
-import { UiMessage, GenerateOption, Color, LocalStyle } from "../interface";
-import chroma from "chroma-js";
+import {
+  UiMessage,
+  GenerateOption,
+  Color,
+  LocalStyle,
+  PreviewUI,
+  LocalColor,
+  UseGenerate,
+} from "../interface";
+import chroma, { hex } from "chroma-js";
+import { DataKey, getData, setData } from "./data";
 
 const sleep = (ms: number) => {
   return new Promise((r) => setTimeout(r, ms));
@@ -114,8 +123,42 @@ figma.showUI(__html__, { themeColors: true, height: 560, width: 320 });
 
 let colors: Color[] = [];
 
-figma.currentPage.children.forEach((node) => {
-  colors.push(...getColors(node));
+const getLocalColors = () => {
+  const list: LocalColor[] = [];
+
+  figma.getLocalPaintStyles().forEach((style) => {
+    if (style.paints.length !== 0) {
+      const solid = style.paints.find(
+        (paint) => paint.type === "SOLID" && paint.visible == true
+      );
+      if (solid && "color" in solid) {
+        const hex = chroma
+          .gl(solid.color.r, solid.color.g, solid.color.b)
+          .hex();
+
+        list.push({
+          hex: hex.replaceAll("#", ""),
+          name: style.name,
+          opacity: solid.opacity == undefined ? 1 : solid.opacity,
+        });
+      }
+    }
+  });
+
+  return list;
+};
+
+figma.root.children.forEach((page) => {
+  page.children.forEach((node) => {
+    colors.push(...getColors(node));
+  });
+
+  getLocalColors().forEach((localColor) => {
+    colors.push({
+      hex: localColor.hex,
+      opacity: localColor.opacity,
+    });
+  });
 });
 
 colors = colors.reduce((list: Color[], color) => {
@@ -146,11 +189,33 @@ if (colors.length == 0) {
   })
     .then(async (response) => {
       const json = await response.json();
+      const localColors = getLocalColors();
+      const tmpDatas = await getData(DataKey.USE_GENERATE);
+      const datas: UseGenerate[] = tmpDatas == undefined ? [] : tmpDatas;
 
       if (json.message == "success") {
         figma.ui.postMessage({
           type: PluginMessageType.PREVIEW,
-          data: json.data,
+          data: json.data.map((preview: PreviewUI) => {
+            const localColor = localColors.find(
+              (localColor) =>
+                localColor.hex == preview.hex &&
+                localColor.opacity == preview.opacity
+            );
+
+            const data = datas.find(
+              (data) =>
+                data.hex == preview.hex && data.opacity == preview.opacity
+            );
+
+            return {
+              hex: preview.hex,
+              localName: localColor == undefined ? null : localColor.name,
+              name: preview.name,
+              opacity: preview.opacity,
+              useGenerate: data == undefined ? true : data.useGenerate,
+            };
+          }),
         });
       } else {
         figma.notify("Figma Color Namer : Failed to get name", {
@@ -176,7 +241,7 @@ figma.ui.onmessage = async (msg: UiMessage) => {
       });
       break;
     }
-    case UiMessageType.GENERATE: {
+    case UiMessageType.APPLY: {
       const { preview }: GenerateOption = data;
 
       figma.getLocalPaintStyles().forEach((localPaint) => {
@@ -188,7 +253,11 @@ figma.ui.onmessage = async (msg: UiMessage) => {
       try {
         preview.forEach((pre) => {
           const paintStyle = figma.createPaintStyle();
-          paintStyle.name = pre.name;
+          paintStyle.name = pre.useGenerate
+            ? pre.name
+            : pre.localName == null
+            ? ""
+            : pre.localName;
 
           const rgb = chroma(`#${pre.hex}`).gl();
 
@@ -222,15 +291,32 @@ figma.ui.onmessage = async (msg: UiMessage) => {
         });
 
         await Promise.all(
-          figma.currentPage.children.map(async (node) => {
-            await setColor(styles, node);
+          figma.root.children.map(async (page) => {
+            await Promise.all(
+              page.children.map(async (node) => {
+                await setColor(styles, node);
+              })
+            );
           })
         );
 
-        figma.closePlugin("Figma Color Namer : Success generate");
+        await Promise.all([
+          setData(
+            DataKey.USE_GENERATE,
+            preview.map((preview) => {
+              return {
+                hex: preview.hex,
+                opacity: preview.opacity,
+                useGenerate: preview.useGenerate,
+              };
+            })
+          ),
+        ]);
+
+        figma.closePlugin("Figma Color Namer : Success apply");
       } catch (e) {
         console.log(e);
-        figma.notify("Figma Color Namer : Failed generate", {
+        figma.notify("Figma Color Namer : Failed apply", {
           timeout: 1000,
           error: true,
           onDequeue: () => {

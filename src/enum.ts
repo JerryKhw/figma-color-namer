@@ -3,7 +3,7 @@ export enum PluginMessageType {
 }
 
 export enum UiMessageType {
-  GENERATE = "GENERATE",
+  APPLY = "APPLY",
   ERROR = "ERROR",
 }
 

@@ -38,10 +38,17 @@ section {
 .preview-wrap {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   margin: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
   text-shadow: 1px 0 #fff, -1px 0 #fff, 0 1px #fff, 0 -1px #fff,
                0.5px 0.5px #fff, -0.5px -0.5px #fff, 0.5px -0.5px #fff, -0.5px 0.5px #fff;
+}
+
+.preview-wrap .switch label {
+  padding-left: 16px;
 }
 
 footer {
@@ -75,6 +82,10 @@ footer button:active {
 }
 
 .spacer {
+  flex: 1;
+}
+
+.flex {
   flex: 1;
 }
 
